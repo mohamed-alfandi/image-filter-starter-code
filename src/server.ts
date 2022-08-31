@@ -1,7 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import { filterImageFromURL, deleteLocalFiles } from './util/util';
-
+import { Application, Request, Response, NextFunction, Errback } from "express";
 (async () => {
 
   // Init the Express application
@@ -28,23 +28,30 @@ import { filterImageFromURL, deleteLocalFiles } from './util/util';
   //   the filtered image file [!!TIP res.sendFile(filteredpath); might be useful]
 
   /**************************************************************************** */
-  app.get("/filteredimage", async (req, res) => {
-    const image_url = req.query.image_url.toString();
-    // to check image_url is not empty 
-    if (!image_url) {
-      return res.status(400).json("Opps, No thing Is Found")
-    }
-    let isValid = image_url.match(/\.(jpeg|jpg|gif|png)$/)
-    /// to check if url is an image
-    if (!isValid) {
-      return res.status(400).json("this url not image")
 
+  app.get("/filteredimage", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+
+      const image_url = req.query.image_url.toString();
+      // to check image_url is not empty 
+      if (!image_url) {
+        return res.status(400).json("Opps, No thing Is Found")
+      }
+      let isValid = image_url.match(/\.(jpeg|jpg|gif|png)$/)
+      /// to check if url is an image
+      if (!isValid) {
+        return res.status(400).json("this url not image")
+
+      }
+
+      let result: string = await filterImageFromURL(image_url) as string;
+      return res.status(200).sendFile(await filterImageFromURL(image_url), () => {
+        deleteLocalFiles([result]);
+      });
+    } catch (e) {
+      return next(e);
     }
 
-    const result = await filterImageFromURL(image_url);
-    return res.status(200).sendFile(await filterImageFromURL(image_url), () => {
-      deleteLocalFiles([result]);
-    });
   }
   );
 
